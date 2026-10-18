@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Interactive decision report for the Sunday Book Club Vue and Supabase platform." />
+  <title>Sunday Book Club — Product &amp; Technical Decision Report</title>
+  <style>
+    :root {
+      --ink: #2c1722;
+      --muted: #735f67;
+      --paper: #fbf4e7;
+      --cream: #f3e5ca;
+      --wine: #781f3c;
+      --orange: #ee7548;
+      --lime: #c7db57;
+      --pink: #efb4c3;
+      --white: #fffdf8;
+      --line: rgba(44, 23, 34, .16);
+      --shadow: 0 18px 50px rgba(74, 37, 49, .12);
+      --radius: 24px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+    a { color: inherit; }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    :focus-visible { outline: 3px solid var(--orange); outline-offset: 3px; }
+    .shell { width: min(1180px, calc(100% - 40px)); margin-inline: auto; }
+    .skip-link { position: fixed; top: 10px; left: 10px; z-index: 10; padding: 10px 14px; background: var(--white); transform: translateY(-150%); }
+    .skip-link:focus { transform: none; }
+
+    .topbar {
+      position: sticky; top: 0; z-index: 5;
+      background: color-mix(in srgb, var(--paper) 88%, transparent);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(16px);
+    }
+    .topbar-inner { min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 850; text-decoration: none; letter-spacing: -.02em; }
+    .brand-mark { width: 30px; aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; background: var(--wine); color: white; }
+    nav { display: flex; gap: 20px; font-size: .9rem; font-weight: 700; }
+    nav a { text-decoration: none; }
+    nav a:hover { color: var(--wine); }
+
+    .hero { position: relative; overflow: hidden; padding: clamp(64px, 10vw, 126px) 0 70px; }
+    .hero::before, .hero::after { content: ""; position: absolute; border-radius: 999px; filter: blur(1px); }
+    .hero::before { width: 360px; height: 360px; background: var(--pink); opacity: .46; right: -120px; top: -140px; }
+    .hero::after { width: 240px; height: 240px; background: var(--lime); opacity: .55; left: -100px; bottom: -130px; }
+    .eyebrow { margin: 0 0 16px; color: var(--wine); font-size: .76rem; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 940px; margin-bottom: 24px; font-family: Georgia, serif; font-size: clamp(3rem, 8.2vw, 7rem); font-weight: 500; line-height: .92; letter-spacing: -.055em; }
+    h1 em, h2 em { color: var(--wine); font-weight: 500; }
+    .lede { max-width: 740px; color: var(--muted); font-size: clamp(1.06rem, 2vw, 1.28rem); }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 32px; }
+    .pill { display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,253,248,.72); font-size: .82rem; font-weight: 750; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--orange); }
+
+    section { padding: 76px 0; }
+    .section-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 480px); align-items: end; gap: 36px; margin-bottom: 34px; }
+    h2 { margin-bottom: 0; font-family: Georgia, serif; font-size: clamp(2.3rem, 5vw, 4.8rem); font-weight: 500; line-height: .98; letter-spacing: -.04em; }
+    .section-head > p { margin-bottom: 3px; color: var(--muted); }
+
+    .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .stat { min-height: 170px; padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--white); box-shadow: var(--shadow); }
+    .stat strong { display: block; margin-bottom: 26px; font-family: Georgia, serif; font-size: 3rem; line-height: 1; }
+    .stat span { color: var(--muted); font-size: .9rem; font-weight: 700; }
+
+    .architecture { background: var(--ink); color: var(--paper); }
+    .architecture .eyebrow { color: var(--lime); }
+    .architecture .section-head > p { color: #d5c7cb; }
+    .flow { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: stretch; gap: 16px; }
+    .flow-step { padding: 25px; border: 1px solid rgba(255,255,255,.18); border-radius: var(--radius); background: rgba(255,255,255,.06); cursor: pointer; transition: .2s ease; }
+    .flow-step:hover, .flow-step.active { transform: translateY(-4px); border-color: var(--lime); background: rgba(199,219,87,.12); }
+    .flow-step small { color: var(--lime); font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+    .flow-step h3 { margin: 13px 0 8px; font-family: Georgia, serif; font-size: 1.55rem; }
+    .flow-step p { margin-bottom: 0; color: #d5c7cb; font-size: .9rem; }
+    .arrow { align-self: center; color: var(--orange); font-size: 1.8rem; }
+    .flow-detail { min-height: 64px; margin-top: 18px; padding: 18px 20px; border-left: 4px solid var(--lime); background: rgba(255,255,255,.07); color: #ede2e5; }
+
+    .toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) auto; gap: 16px; align-items: center; margin-bottom: 24px; }
+    .search { display: flex; align-items: center; gap: 10px; padding: 0 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--white); }
+    .search input { width: 100%; padding: 14px 0; border: 0; outline: 0; background: transparent; color: var(--ink); }
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; }
+    .filter { padding: 10px 14px; border: 1px solid var(--line); border-radius: 999px; background: transparent; cursor: pointer; font-size: .82rem; font-weight: 800; }
+    .filter:hover, .filter.active { background: var(--wine); color: white; border-color: var(--wine); }
+    .decision-count { margin: 0 0 12px; color: var(--muted); font-size: .86rem; }
+    .decision-list { display: grid; gap: 14px; }
+    .decision { border: 1px solid var(--line); border-radius: 20px; background: var(--white); overflow: clip; box-shadow: 0 8px 30px rgba(74,37,49,.06); }
+    .decision[hidden] { display: none; }
+    .decision summary { list-style: none; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 16px; padding: 21px 22px; cursor: pointer; }
+    .decision summary::-webkit-details-marker { display: none; }
+    .decision-num { display: grid; place-items: center; width: 38px; aspect-ratio: 1; border-radius: 50%; background: var(--cream); color: var(--wine); font-weight: 900; }
+    .decision-title { margin: 0; font-family: Georgia, serif; font-size: 1.35rem; }
+    .decision-meta { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 6px; }
+    .tag { padding: 4px 8px; border-radius: 999px; background: var(--cream); color: var(--muted); font-size: .68rem; font-weight: 850; text-transform: uppercase; letter-spacing: .06em; }
+    .chevron { transition: transform .2s; }
+    details[open] .chevron { transform: rotate(45deg); }
+    .decision-body { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; border-top: 1px solid var(--line); background: var(--line); }
+    .decision-body > div { padding: 22px; background: var(--white); }
+    .decision-body h4 { margin: 0 0 8px; color: var(--wine); font-size: .73rem; text-transform: uppercase; letter-spacing: .1em; }
+    .decision-body p, .decision-body li { color: var(--muted); font-size: .9rem; }
+    .decision-body ul { margin: 0; padding-left: 18px; }
+    .evidence-links { display: flex; flex-direction: column; gap: 7px; }
+    .evidence-links a { color: var(--wine); font-size: .84rem; font-weight: 800; text-underline-offset: 3px; }
+    .empty-results { padding: 38px; border: 1px dashed var(--line); border-radius: var(--radius); text-align: center; color: var(--muted); }
+
+    .impact { background: var(--cream); }
+    .comparison { display: grid; grid-template-columns: 1fr 80px 1fr; gap: 16px; align-items: stretch; }
+    .compare-card { padding: 28px; border-radius: var(--radius); background: var(--white); }
+    .compare-card.after { background: var(--wine); color: white; }
+    .compare-card h3 { font-family: Georgia, serif; font-size: 2rem; }
+    .compare-card ul { margin: 0; padding-left: 20px; }
+    .compare-card li { margin: 10px 0; }
+    .compare-arrow { display: grid; place-items: center; font-size: 2.3rem; color: var(--wine); }
+    .impact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 16px; }
+    .impact-card { padding: 24px; border: 1px solid var(--line); border-radius: 20px; background: rgba(255,253,248,.8); }
+    .impact-card strong { display: block; margin-bottom: 10px; color: var(--wine); font-size: 1.05rem; }
+    .impact-card p { margin: 0; color: var(--muted); font-size: .9rem; }
+
+    .explainer-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    .explainer { border: 1px solid var(--line); border-radius: 20px; background: var(--white); overflow: clip; }
+    .explainer summary { padding: 20px; cursor: pointer; font-family: Georgia, serif; font-size: 1.25rem; font-weight: 700; }
+    .explainer p { padding: 0 20px 20px; margin: 0; color: var(--muted); }
+
+    .docs { background: var(--pink); }
+    .doc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .doc-card { display: flex; flex-direction: column; justify-content: space-between; min-height: 205px; padding: 24px; border-radius: var(--radius); background: var(--white); text-decoration: none; transition: .2s ease; }
+    .doc-card:hover { transform: translateY(-5px); box-shadow: var(--shadow); }
+    .doc-card small { color: var(--wine); font-weight: 850; text-transform: uppercase; letter-spacing: .1em; }
+    .doc-card h3 { margin: 18px 0 8px; font-family: Georgia, serif; font-size: 1.45rem; }
+    .doc-card p { margin: 0; color: var(--muted); font-size: .86rem; }
+    .doc-card span { margin-top: 18px; color: var(--wine); font-weight: 850; }
+
+    .note { margin-top: 24px; padding: 20px; border: 1px dashed var(--line); border-radius: 16px; color: var(--muted); font-size: .86rem; }
+    footer { padding: 36px 0; background: var(--ink); color: #d7c8cd; font-size: .86rem; }
+    footer .shell { display: flex; justify-content: space-between; gap: 18px; }
+    .back-top { color: var(--lime); font-weight: 800; }
+
+    @media (max-width: 900px) {
+      nav { display: none; }
+      .summary-grid, .impact-grid, .doc-grid { grid-template-columns: repeat(2, 1fr); }
+      .flow { grid-template-columns: 1fr; }
+      .arrow { transform: rotate(90deg); justify-self: center; }
+      .decision-body { grid-template-columns: 1fr; }
+      .comparison { grid-template-columns: 1fr; }
+      .compare-arrow { transform: rotate(90deg); min-height: 50px; }
+    }
+    @media (max-width: 650px) {
+      .shell { width: min(100% - 24px, 1180px); }
+      .section-head, .toolbar { grid-template-columns: 1fr; }
+      .summary-grid, .impact-grid, .doc-grid, .explainer-grid { grid-template-columns: 1fr; }
+      .decision summary { grid-template-columns: auto 1fr; }
+      .chevron { display: none; }
+      footer .shell { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to report</a>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <a class="brand" href="#top"><span class="brand-mark">S</span> Sunday Book Club / Decision Report</a>
+      <nav aria-label="Report navigation">
+        <a href="#architecture">Architecture</a>
+        <a href="#decisions">Decisions</a>
+        <a href="#impact">UX impact</a>
+        <a href="#documents">Documents</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="shell">
+        <p class="eyebrow">Product &amp; technical decision record · 18 October 2026</p>
+        <h1>From a lovely page to a <em>living club.</em></h1>
+        <p class="lede">An interactive account of the choices that turned Sunday Book Club from a static Vue homepage into a secure, data-backed reading platform—with the reasoning, trade-offs, implementation evidence, and visible UX consequences in one place.</p>
+        <div class="hero-meta" aria-label="Report scope">
+          <span class="pill"><span class="dot"></span> 15 decisions recorded</span>
+          <span class="pill">Vue 3 + TypeScript</span>
+          <span class="pill">Express + PostgreSQL</span>
+          <span class="pill">Supabase Auth</span>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="snapshot-title">
+      <div class="shell">
+        <div class="section-head">
+          <div><p class="eyebrow">At a glance</p><h2 id="snapshot-title">What <em>changed.</em></h2></div>
+          <p>The visual identity stayed warm and editorial. Underneath, the product gained durable data, identity, ownership, transactions, and resilient UI states.</p>
+        </div>
+        <div class="summary-grid">
+          <article class="stat"><strong>5</strong><span>Vue routes now form the member journey</span></article>
+          <article class="stat"><strong>14</strong><span>documented API operations support the experience</span></article>
+          <article class="stat"><strong>9</strong><span>user-facing tables protected by Row Level Security</span></article>
+          <article class="stat"><strong>0</strong><span>known dependency vulnerabilities in the recorded audit</span></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="architecture" id="architecture" aria-labelledby="architecture-title">
+      <div class="shell">
+        <div class="section-head">
+          <div><p class="eyebrow">The system in one minute</p><h2 id="architecture-title">Follow a reader’s <em>action.</em></h2></div>
+          <p>Select a layer to see its responsibility. The separation keeps database credentials out of the browser and gives each user action a trusted path.</p>
+        </div>
+        <div class="flow" role="list">
+          <button class="flow-step active" type="button" data-detail="A reader sees responsive pages, loading and error feedback, then starts an action such as saving a book or reserving a seat." role="listitem"><small>01 · Experience</small><h3>Vue interface</h3><p>Pages, forms, tabs and immediate feedback.</p></button>
+          <span class="arrow" aria-hidden="true">→</span>
+          <button class="flow-step" type="button" data-detail="The typed API client adds a verified session token when required. Express validates input, enforces ownership, checks capacity and returns safe errors." role="listitem"><small>02 · Trust boundary</small><h3>Express API</h3><p>Authentication, validation and business rules.</p></button>
+          <span class="arrow" aria-hidden="true">→</span>
+          <button class="flow-step" type="button" data-detail="PostgreSQL stores books, profiles, shelves, clubs, reviews and registrations. Constraints and RLS remain a second line of defence." role="listitem"><small>03 · Source of truth</small><h3>Supabase / Postgres</h3><p>Durable records, relations, policies and constraints.</p></button>
+        </div>
+        <div class="flow-detail" id="flow-detail" role="status">A reader sees responsive pages, loading and error feedback, then starts an action such as saving a book or reserving a seat.</div>
+      </div>
+    </section>
+
+    <section id="decisions" aria-labelledby="decisions-title">
+      <div class="shell">
+        <div class="section-head">
+          <div><p class="eyebrow">Decision log</p><h2 id="decisions-title">The choices, with <em>receipts.</em></h2></div>
+          <p>Search by topic or filter by layer. Open any decision for rationale, consequences and direct links to the code or documentation that records it.</p>
+        </div>
+        <div class="toolbar">
+          <label class="search"><span aria-hidden="true">⌕</span><span class="sr-only"></span><input id="decision-search" type="search" placeholder="Search auth, reviews, routing…" aria-label="Search decisions" /></label>
+          <div class="filters" aria-label="Filter decisions">
+            <button class="filter active" type="button" data-filter="all">All</button>
+            <button class="filter" type="button" data-filter="product">Product</button>
+            <button class="filter" type="button" data-filter="frontend">Frontend</button>
+            <button class="filter" type="button" data-filter="backend">Backend</button>
+            <button class="filter" type="button" data-filter="security">Security</button>
+          </div>
+        </div>
+        <p class="decision-count" id="decision-count" aria-live="polite">Showing all 15 decisions</p>
+        <div class="decision-list" id="decision-list">
+
+          <details class="decision" data-categories="backend product" data-search="postgresql supabase source truth database persistent live content books meetings reviews">
+            <summary><span class="decision-num">01</span><div><h3 class="decision-title">Make PostgreSQL the source of truth</h3><div class="decision-meta"><span class="tag">Backend</span><span class="tag">Product</span></div></div><span class="chevron">＋</span></summary>
+            <div class="decision-body"><div><h4>Why</h4><p>Static arrays could only demonstrate a club. Persistent relational data lets books, meetings, members, reviews and registrations stay consistent across sessions and people.</p></div><div><h4>Consequence</h4><p>The homepage and catalogue now reflect live records, while database constraints prevent impossible or duplicate states.</p></div><div><h4>Evidence</h4><div class="evidence-links"><a href="README.md#architecture">README architecture ↗</a><a href="supabase/migrations/20261018000000_initial_schema.sql">Initial schema ↗</a><a href="server/db.ts">Database connection ↗</a></div></div></div>
+          </details>
+
+          <details class="decision" data-categories="backend security" data-search="api express trust boundary secrets database url credentials server side">
+            <summary><span class="decision-num">02</span><div><h3 class="decision-title">Put Express between the browser and the database</h3><div class="decision-meta"><span class="tag">Backend</span><span class="tag">Security</span></div></div><span class="chevron">＋</span></summary>
+            <div class="decision-body"><div><h4>Why</h4><p>Business rules such as seat capacity and ownership need a trusted execution point. The database connection string must never reach browser code.</p></div><div><h4>Consequence</h4><p>The Vue app has one typed <code>/api</code> surface. Server routes validate input, authorize users and return deliberately limited error messages.</p></div><div><h4>Evidence</h4><div class="evidence-links"><a href="src/api.ts">Typed client ↗</a><a href="server/app.ts">Express application ↗</a><a href="README.md#api">API reference ↗</a></div></div></div>
+          </details>
+
+          <details class="decision" data-categories="security frontend backend" data-search="passwordless authentication magic link pkce supabase auth bearer token session">
+            <summary><span class="decision-num">03</span><div><h3 class="decision-title">Use passwordless magic links with PKCE</h3><div class="decision-meta"><span class="tag">Security</span><span class="tag">Frontend</span></div></div><span class="chevron">＋</span></summary>
+            <div class="decision-body"><div><h4>Why</h4><p>Members get low-friction sign-in without the application collecting or storing passwords. PKCE protects the browser authentication exchange.</p></div><div><h4>Consequence</h4><p>The UI gained session restoration, signed-in and signed-out states, protected calls and a clear “check your inbox” step.</p></div><div><h4>Evidence</h4><div class="evidence-links"><a href="src/composables/useAuth.ts">Auth state ↗</a><a href="src/components/MemberAccess.vue">Member access UI ↗</a><a href="server/auth.ts">Token verification ↗</a></div></div></div>
+          </details>
+
+          <details class="decision" data-categories="security backend" data-search="row level security rls ownership policies defence defense tables">
+            <summary><span class="decision-num">04</span><div><h3 class="decision-title">Enforce ownership twice: API checks plus RLS</h3><div class="decision-meta"><span class="tag">Security</span><span class="tag">Backend</span></div></div><span class="chevron">＋</span></summary>
+            <div class="decision-body"><div><h4>Why</h4><p>A route bug should not expose another member’s shelf, profile, review or RSVP. Row Level Security makes ownership a database-level invariant too.</p></div><div><h4>Consequence</h4><p>Authenticated actions derive identity from the verified token—not request input—and policies restrict rows to the current member.</p></div><div><h4>Evidence</h4><div class="evidence-links"><a href="SECURITY_AUDIT.md#implemented-controls">Security controls ↗</a><a href="supabase/migrations/20261018010000_reading_platform.sql">RLS policies ↗</a><a href="server/scripts/audit-rls.ts">Automated RLS audit ↗</a></div></div></div>
+          </details>
+
+          <details class="decision" data-categories="frontend product" data-search="vue router routes explore book profile event navigation history mode deep links">
+            <summary><span class="decision-num">05</span><div><h3 class="decision-title">Grow one homepage into five focused routes</h3><div class="decision-meta"><span class="tag">Frontend</span><span class="tag">Product</span></div></div><span class="chevron">＋</span></summary>
+            <div class="decision-body"><div><h4>Why</h4><p>Catalogue discovery, a single book, a member profile and an event each have different information needs and shareable destinations.</p></div><div><h4>Consequence</h4><p>Navigation now forms a coherent journey: home → explore → book → event/profile, with lazy-loaded secondary pages and smooth anchor links.</p></div><div><h4>Evidence</h4><div class="evidence-links"><a href="src/router.ts">Router map ↗</a><a href="src/App.vue">Application shell ↗</a><a href="src/components/Navbar.vue">Navigation UI ↗</a></div></div></div>
+          </details>
+
+          <details class="decision" data-categories="product frontend backend" data-search="catalogue search genre sort filter explore discover books debounce">
+            <summary><span class="decision-num">06</span><div><h3 class="decision-title">Make the catalogue searchable and filterable</h3><div class="decision-meta"><span class="tag">Product</span><span class="tag">Frontend</span></div></div><span class="chevron">＋</span></summary>
+            <div class="decision-body"><div><h4>Why</h4><p>A growing library needs discovery beyond a hand-picked homepage shelf. Search, genre filters and sorting let different reader intents succeed.</p></div><div><h4>Consequence</h4><p>The Explore page adds debounced search, result counts, skeletons, empty states and retry feedback backed by validated query parameters.</p></div><div><h4>Evidence</h4><div class="evidence-links"><a href="src/pages/ExploreBooksPage.vue">Explore experience ↗</a><a href="server/routes/books.ts">Books API ↗</a></div></div></div>
+          </details>
+
+          <details class="decision" data-categories="product frontend backend" data-search="reading status bookshelf want to read currently reading read personal profile">
+            <summary><span class="decision-num">07</span><div><h3 class="decision-title">Give every member a personal bookshelf</h3><div class="decision-meta"><span class="tag">Product</span><span class="tag">Backend</span></div></div><span class="chevron">＋</span></summary>
+            <div class="decision-body"><div><h4>Why</h4><p>“Want to read”, “currently reading” and “read” turn browsing into an ongoing relationship with the club’s library.</p></div><div><h4>Consequence</h4><p>A status control appears on book details and the profile becomes a management surface for changing or removing saved books.</p></div><div><h4>Evidence</h4><div class="evidence-links"><a href="src/pages/BookDetailsPage.vue">Book status control ↗</a><a href="src/pages/ProfilePage.vue">Bookshelf tab ↗</a><a href="supabase/migrations/20261018010000_reading_platform.sql">Reading list model ↗</a></div></div></div>
+          </details>
+
+          <details class="decision" data-categories="product frontend backend security" data-search="reviews community edit delete moderation approved one per book member">
+            <summary><span class="decision-num">08</span><div><h3 class="decision-title">Turn testimonials into owned community reviews</h3><div class="decision-meta"><span class="tag">Product</span><span class="tag">Security</span></div></div><span class="chevron">＋</span></summary>
+            <div class="decision-body"><div><h4>Why</h4><p>Member-authored reviews are more useful and authentic than fixed marketing quotes, but they require ownership and moderation.</p></div><div><h4>Consequence</h4><p>Members can create one review per book, then edit or delete only their own. Public visibility remains approval-controlled.</p></div><div><h4>Evidence</h4><div class="evidence-links"><a href="server/routes/reviews.ts">Review mutations ↗</a><a href="src/pages/BookDetailsPage.vue">Review editor ↗</a><a href="supabase/migrations/20261018010000_reading_platform.sql">Review rules ↗</a></div></div></div>
+          </details>
+
+          <details class="decision" data-categories="product backend frontend" data-search="rsvp capacity waitlist registration cancel attendance confirmation organizer events">
+            <summary><span class="decision-num">09</span><div><h3 class="decision-title">Model RSVP, waitlist and attendance as different truths</h3><div class="decision-meta"><span class="tag">Product</span><span class="tag">Backend</span></div></div><span class="chevron">＋</span></summary>
+            <div class="decision-body"><div><h4>Why</h4><p>Planning to attend is not the same as attending. Capacity also means a valid request may need to become waitlisted.</p></div><div><h4>Consequence</h4><p>The interface can say “registered”, “waitlisted” or “attendance confirmed” precisely; profile statistics count confirmed attendance rather than intent.</p></div><div><h4>Evidence</h4><div class="evidence-links"><a href="server/routes/rsvps.ts">Capacity-aware RSVP ↗</a><a href="src/pages/EventDetailsPage.vue">Event registration UI ↗</a><a href="src/pages/ProfilePage.vue">Event history ↗</a></div></div></div>
+          </details>
+
+          <details class="decision" data-categories="security backend" data-search="rsvp hardening postgrest bypass capacity organizer attendance api only revoke write">
+            <summary><span class="decision-num">10</span><div><h3 class="decision-title">Route RSVP writes only through the trusted API</h3><div class="decision-meta"><span class="tag">Security</span><span class="tag">Backend</span></div></div><span class="chevron">＋</span></summary>
+            <div class="decision-body"><div><h4>Why</h4><p>Direct browser writes could bypass the API’s capacity calculation or touch organizer-only attendance fields.</p></div><div><h4>Consequence</h4><p>Browser roles may read their own RSVP through RLS, but insert/update/delete grants are revoked; the API owns registration changes.</p></div><div><h4>Evidence</h4><div class="evidence-links"><a href="supabase/migrations/20261018020000_rsvp_write_hardening.sql">RSVP hardening migration ↗</a><a href="SECURITY_AUDIT.md#implemented-controls">Audit explanation ↗</a></div></div></div>
+          </details>
+
+          <details class="decision" data-categories="product frontend" data-search="profile reading corner tabs statistics events shelf reviews edit bio avatar username">
+            <summary><span class="decision-num">11</span><div><h3 class="decision-title">Unify member activity in “My Reading Corner”</h3><div class="decision-meta"><span class="tag">Product</span><span class="tag">Frontend</span></div></div><span class="chevron">＋</span></summary>
+            <div class="decision-body"><div><h4>Why</h4><p>Once activity is persistent, members need one place to understand and manage it without hunting through books and events.</p></div><div><h4>Consequence</h4><p>A tabbed profile brings upcoming events, attended events, bookshelf and reviews together with editable identity and meaningful empty states.</p></div><div><h4>Evidence</h4><div class="evidence-links"><a href="src/pages/ProfilePage.vue">Reading Corner UI ↗</a><a href="server/routes/profile.ts">Profile aggregation ↗</a></div></div></div>
+          </details>
+
+          <details class="decision" data-categories="frontend product" data-search="loading empty error retry optimistic feedback resilient skeleton accessible role alert status">
+            <summary><span class="decision-num">12</span><div><h3 class="decision-title">Design the waiting, empty and failure states</h3><div class="decision-meta"><span class="tag">Frontend</span><span class="tag">Product</span></div></div><span class="chevron">＋</span></summary>
+            <div class="decision-body"><div><h4>Why</h4><p>A networked interface is never only its successful state. Delays and failures must still feel intentional, legible and recoverable.</p></div><div><h4>Consequence</h4><p>Pages now include skeletons or contextual loading copy, explicit empty states, retry actions, disabled pending buttons and accessible status/alert announcements.</p></div><div><h4>Evidence</h4><div class="evidence-links"><a href="src/pages/HomePage.vue">Homepage states ↗</a><a href="src/pages/ExploreBooksPage.vue">Catalogue states ↗</a><a href="src/pages/ProfilePage.vue">Profile states ↗</a></div></div></div>
+          </details>
+
+          <details class="decision" data-categories="security backend frontend" data-search="validation zod cors helmet csp rate limit body limit generic errors tls environment secrets">
+            <summary><span class="decision-num">13</span><div><h3 class="decision-title">Apply layered web security controls</h3><div class="decision-meta"><span class="tag">Security</span><span class="tag">Backend</span></div></div><span class="chevron">＋</span></summary>
+            <div class="decision-body"><div><h4>Why</h4><p>No single control covers malformed input, cross-origin abuse, injection, excessive traffic, leaked detail and browser attacks.</p></div><div><h4>Consequence</h4><p>Zod, parameterized SQL, CORS allowlists, Helmet/CSP, rate limits, small request bodies, ignored secrets and generic errors create overlapping protection.</p></div><div><h4>Evidence</h4><div class="evidence-links"><a href="SECURITY_AUDIT.md">Full security audit ↗</a><a href="server/app.ts">HTTP protections ↗</a><a href=".env.example">Environment contract ↗</a></div></div></div>
+          </details>
+
+          <details class="decision" data-categories="backend security" data-search="migrations additive preserve data rerunnable schema migrations deployment operations">
+            <summary><span class="decision-num">14</span><div><h3 class="decision-title">Evolve the schema through ordered, additive migrations</h3><div class="decision-meta"><span class="tag">Backend</span><span class="tag">Security</span></div></div><span class="chevron">＋</span></summary>
+            <div class="decision-body"><div><h4>Why</h4><p>A live system needs repeatable change without dropping earlier content or registrations.</p></div><div><h4>Consequence</h4><p>The migration runner records applied files; the reading-platform expansion backfills identities and relationships before enforcing new constraints.</p></div><div><h4>Evidence</h4><div class="evidence-links"><a href="server/scripts/migrate.ts">Migration runner ↗</a><a href="supabase/migrations/20261018010000_reading_platform.sql">Additive expansion ↗</a><a href="README.md#supabase-setup">Setup instructions ↗</a></div></div></div>
+          </details>
+
+          <details class="decision" data-categories="frontend backend product" data-search="deployment vite proxy api url history mode spa rewrite github pages production origins">
+            <summary><span class="decision-num">15</span><div><h3 class="decision-title">Keep local development simple; make deployment requirements explicit</h3><div class="decision-meta"><span class="tag">Frontend</span><span class="tag">Backend</span></div></div><span class="chevron">＋</span></summary>
+            <div class="decision-body"><div><h4>Why</h4><p>One command should run the web and API locally, while production may place them on different origins and must support deep links.</p></div><div><h4>Consequence</h4><p>Vite proxies <code>/api</code> locally; production can set <code>VITE_API_URL</code>, must allow the client origin, and must rewrite SPA routes while preserving API routing.</p></div><div><h4>Evidence</h4><div class="evidence-links"><a href="package.json">Development scripts ↗</a><a href="vite.config.ts">Local proxy ↗</a><a href="README.md#production">Production notes ↗</a></div></div></div>
+          </details>
+        </div>
+        <div class="empty-results" id="empty-results" hidden>No decisions match that search and filter. Try a broader term.</div>
+      </div>
+    </section>
+
+    <section class="impact" id="impact" aria-labelledby="impact-title">
+      <div class="shell">
+        <div class="section-head">
+          <div><p class="eyebrow">The requested explanation</p><h2 id="impact-title">How the backend <em>affected UX &amp; UI.</em></h2></div>
+          <p>The backend was not an invisible plumbing change. It changed what the interface could promise, what states it had to show, and how much trust users could place in every action.</p>
+        </div>
+        <div class="comparison">
+          <article class="compare-card"><p class="eyebrow">Before · static showcase</p><h3>A page to read</h3><ul><li>Fixed book and review arrays</li><li>One long-scroll destination</li><li>Calls to action without durable member state</li><li>No network waiting or failure states</li><li>The same experience for every visitor</li></ul></article>
+          <div class="compare-arrow" aria-hidden="true">→</div>
+          <article class="compare-card after"><p class="eyebrow" style="color:var(--lime)">After · connected platform</p><h3>A club to participate in</h3><ul><li>Live catalogue, meetings and community content</li><li>Searchable, linkable book and event pages</li><li>Personal shelf, reviews, profile and RSVP history</li><li>Loading, empty, success, waitlist and error feedback</li><li>Authenticated UI adapts to ownership and session state</li></ul></article>
+        </div>
+        <div class="impact-grid">
+          <article class="impact-card"><strong>More useful UI</strong><p>Persistent data unlocked catalogue search, book detail pages, event pages, personal shelves, member statistics and editable reviews.</p></article>
+          <article class="impact-card"><strong>More interface states</strong><p>Async data introduced loading, retry and empty designs. Authentication introduced signed-in, signed-out and session-checking states.</p></article>
+          <article class="impact-card"><strong>More precise language</strong><p>The interface can distinguish registered, waitlisted, cancelled and attendance-confirmed instead of showing one vague RSVP message.</p></article>
+          <article class="impact-card"><strong>Safer actions</strong><p>Verified ownership lets edit and delete controls appear only where appropriate; capacity checks make “Save my spot” truthful.</p></article>
+          <article class="impact-card"><strong>Better continuity</strong><p>A returning reader sees their own shelf and activity. The product remembers decisions between visits rather than resetting every time.</p></article>
+          <article class="impact-card"><strong>A real trade-off</strong><p>The UI is more capable but depends on network and service health. The new feedback states and retry paths are the design response to that cost.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="explainers-title">
+      <div class="shell">
+        <div class="section-head">
+          <div><p class="eyebrow">Hard topics, plainly</p><h2 id="explainers-title">Technical ideas without the <em>fog.</em></h2></div>
+          <p>Open a topic for a short explanation of the concepts that carry the most architectural or security weight.</p>
+        </div>
+        <div class="explainer-grid">
+          <details class="explainer"><summary>What is Row Level Security?</summary><p>RLS is a database rule that decides which rows a user may read or change. Even if application code makes a mistake, the database can still refuse access to somebody else’s profile, shelf, review or registration.</p></details>
+          <details class="explainer"><summary>Why PKCE for a magic link?</summary><p>PKCE connects the sign-in attempt started in this browser with the callback that completes it. It reduces the risk that an intercepted authorization result can be reused elsewhere, while keeping sign-in passwordless.</p></details>
+          <details class="explainer"><summary>Why both constraints and validation?</summary><p>Zod validation gives fast, friendly API errors. Database constraints are the final guarantee when requests race or another trusted tool writes data. One improves feedback; the other protects truth.</p></details>
+          <details class="explainer"><summary>Why can’t the browser write RSVPs directly?</summary><p>Seat allocation needs one trusted capacity check. If every browser could update RSVP rows directly, a modified request might bypass the waitlist or change organizer-only attendance fields.</p></details>
+          <details class="explainer"><summary>What does “additive migration” mean?</summary><p>Instead of rebuilding the database, the migration adds columns and tables, fills required values for existing rows, then adds stricter rules. That keeps earlier content and registrations intact.</p></details>
+          <details class="explainer"><summary>Why does history-mode routing need a rewrite?</summary><p>A route such as <code>/books/apricot-skies</code> belongs to Vue, not to a physical server file. Production hosting must return <code>index.html</code> for unknown page routes so Vue can render the right screen.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <section class="docs" id="documents" aria-labelledby="documents-title">
+      <div class="shell">
+        <div class="section-head">
+          <div><p class="eyebrow">Source library</p><h2 id="documents-title">Relevant <em>documents.</em></h2></div>
+          <p>These are the best starting points. Every decision above also links directly to its implementation evidence.</p>
+        </div>
+        <div class="doc-grid">
+          <a class="doc-card" href="README.md"><div><small>Guide</small><h3>README</h3><p>Architecture, setup, authentication, development, API and production requirements.</p></div><span>Open document →</span></a>
+          <a class="doc-card" href="SECURITY_AUDIT.md"><div><small>Assurance</small><h3>Security Audit</h3><p>Implemented controls, verified behaviour and remaining deployment actions.</p></div><span>Open document →</span></a>
+          <a class="doc-card" href="supabase/migrations/20261018000000_initial_schema.sql"><div><small>Data</small><h3>Initial Schema</h3><p>Core books, members, meetings, RSVPs, reviews, seed content and baseline policies.</p></div><span>Open source →</span></a>
+          <a class="doc-card" href="supabase/migrations/20261018010000_reading_platform.sql"><div><small>Data</small><h3>Platform Expansion</h3><p>Profiles, shelves, clubs, selections, attendance, ownership policies and backfills.</p></div><span>Open source →</span></a>
+          <a class="doc-card" href="supabase/migrations/20261018020000_rsvp_write_hardening.sql"><div><small>Security</small><h3>RSVP Hardening</h3><p>The final write boundary that prevents capacity and attendance bypass through PostgREST.</p></div><span>Open source →</span></a>
+          <a class="doc-card" href="src/router.ts"><div><small>Experience</small><h3>Route Map</h3><p>The public and member-facing destinations that make up the product journey.</p></div><span>Open source →</span></a>
+          <a class="doc-card" href="src/api.ts"><div><small>Contract</small><h3>Frontend API Client</h3><p>Typed operations, authorization headers and consistent response/error handling.</p></div><span>Open source →</span></a>
+          <a class="doc-card" href="server/app.ts"><div><small>Server</small><h3>Express Application</h3><p>CORS, security headers, limits, routes, health checks and error boundaries.</p></div><span>Open source →</span></a>
+          <a class="doc-card" href="package.json"><div><small>Operations</small><h3>Project Scripts</h3><p>Commands for local development, builds, type checks, migrations and RLS auditing.</p></div><span>Open source →</span></a>
+        </div>
+        <p class="note"><strong>Evidence note:</strong> The repository does not contain a separate meeting transcript or formal ADR folder. This report reconstructs the decision record from the current implementation, its diff from the original static version, the README, migration comments and the dated security audit. “Why” statements are therefore reasoned explanations of the implemented choices, not quotations from an absent conversation log.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer><div class="shell"><span>Sunday Book Club · Product &amp; Technical Decision Report</span><a class="back-top" href="#top">Back to top ↑</a></div></footer>
+
+  <script>
+    const searchInput = document.querySelector('#decision-search');
+    const filters = [...document.querySelectorAll('.filter')];
+    const decisions = [...document.querySelectorAll('.decision')];
+    const count = document.querySelector('#decision-count');
+    const empty = document.querySelector('#empty-results');
+    let activeFilter = 'all';
+
+    function updateDecisions() {
+      const query = searchInput.value.trim().toLowerCase();
+      let visible = 0;
+      decisions.forEach((decision) => {
+        const categoryMatch = activeFilter === 'all' || decision.dataset.categories.split(' ').includes(activeFilter);
+        const text = `${decision.textContent} ${decision.dataset.search}`.toLowerCase();
+        const searchMatch = !query || text.includes(query);
+        decision.hidden = !(categoryMatch && searchMatch);
+        if (!decision.hidden) visible += 1;
+      });
+      count.textContent = visible === decisions.length
+        ? `Showing all ${visible} decisions`
+        : `Showing ${visible} of ${decisions.length} decisions`;
+      empty.hidden = visible !== 0;
+    }
+
+    searchInput.addEventListener('input', updateDecisions);
+    filters.forEach((filter) => filter.addEventListener('click', () => {
+      activeFilter = filter.dataset.filter;
+      filters.forEach((item) => {
+        const selected = item === filter;
+        item.classList.toggle('active', selected);
+        item.setAttribute('aria-pressed', String(selected));
+      });
+      updateDecisions();
+    }));
+
+    const flowSteps = [...document.querySelectorAll('.flow-step')];
+    const flowDetail = document.querySelector('#flow-detail');
+    flowSteps.forEach((step) => step.addEventListener('click', () => {
+      flowSteps.forEach((item) => item.classList.toggle('active', item === step));
+      flowDetail.textContent = step.dataset.detail;
+    }));
+  </script>
+</body>
+</html>

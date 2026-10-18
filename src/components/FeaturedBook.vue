@@ -1,3 +1,9 @@
+<script setup lang="ts">
+import type { Book } from '../types'
+
+defineProps<{ book: Book }>()
+</script>
+
 <template>
   <section id="this-month" class="featured-section section-pad">
     <div class="page-shell">
@@ -11,22 +17,31 @@
 
       <article class="featured-card">
         <div class="featured-cover-wrap">
-          <div class="featured-cover" role="img" aria-label="Cover of The Sunday Chapter">
-            <div class="featured-cover-sun"></div>
-            <span class="cover-kicker">A Novel</span>
-            <h3>The<br />Sunday<br />Chapter</h3>
-            <p>June Harper</p>
-          </div>
+          <RouterLink
+            class="featured-cover-link"
+            :to="book.slug ? { name: 'book', params: { slug: book.slug } } : { name: 'explore' }"
+            :aria-label="`Open ${book.title} by ${book.author}`"
+          >
+            <div class="featured-cover" role="img" :aria-label="`Cover of ${book.title}`">
+              <div class="featured-cover-sun"></div>
+              <span class="cover-kicker">{{ book.coverKicker ?? 'A Novel' }}</span>
+              <h3>{{ book.title }}</h3>
+              <p>{{ book.author }}</p>
+            </div>
+          </RouterLink>
           <span class="round-sticker">Our<br /><strong>pick!</strong></span>
         </div>
         <div class="featured-details">
-          <div class="featured-meta"><span>Literary fiction</span><span>304 pages</span><span>2026</span></div>
+          <div class="featured-meta"><span>{{ book.genre }}</span><span>{{ book.pages ?? 304 }} pages</span><span>{{ book.publicationYear ?? 2026 }}</span></div>
           <p class="eyebrow">This month we’re reading</p>
-          <h3>The Sunday Chapter</h3>
-          <p class="featured-author">by June Harper</p>
-          <p class="featured-description">When three strangers inherit a tiny bookshop on the edge of Reykjavík, they discover a pencilled note inside every book—and a story that might connect them all.</p>
-          <div class="quote-line"><span>“Warm, strange and impossible to put down.”</span><span class="stars" aria-label="5 out of 5 stars">★★★★★</span></div>
-          <a class="button button-orange" href="#join">Read with us <span aria-hidden="true">→</span></a>
+          <h3>{{ book.title }}</h3>
+          <p class="featured-author">by {{ book.author }}</p>
+          <p class="featured-description">{{ book.description }}</p>
+          <div class="quote-line"><span>“{{ book.pullQuote }}”</span><span class="stars" :aria-label="`${book.rating} out of 5 stars`">{{ '★'.repeat(Math.round(book.rating)) }}</span></div>
+          <RouterLink
+            class="button button-orange"
+            :to="book.slug ? { name: 'book', params: { slug: book.slug } } : { name: 'explore' }"
+          >Read with us <span aria-hidden="true">→</span></RouterLink>
         </div>
       </article>
     </div>
