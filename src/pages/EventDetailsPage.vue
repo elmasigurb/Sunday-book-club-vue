@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { cancelMeetingRsvp, getEvent, rsvpToMeeting } from '../api'
 import BookCover from '../components/BookCover.vue'
 import { useAuth } from '../composables/useAuth'
+import { isStaticShowcase } from '../config'
 import type { EventDetails } from '../types'
 
 const route = useRoute()
@@ -82,7 +83,8 @@ watch(session, () => { void loadEvent() })
           </dl>
           <p v-if="event.note" class="event-note"><span>✿</span> {{ event.note }}</p>
           <div class="event-actions">
-            <template v-if="session">
+            <span v-if="isStaticShowcase" class="registration-badge">RSVP available with live API</span>
+            <template v-else-if="session">
               <button v-if="!event.registration || event.registration.status === 'cancelled'" class="button button-orange" type="button" :disabled="pending" @click="register">{{ pending ? 'Saving…' : 'Save my spot' }}</button>
               <template v-else><span class="registration-badge">{{ event.registration.status === 'attending' ? 'You’re registered' : 'You’re waitlisted' }}</span><button class="text-button danger" type="button" :disabled="pending" @click="cancel">Cancel registration</button></template>
             </template>

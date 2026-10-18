@@ -5,6 +5,8 @@ import type {
   ReadingStatus,
   SiteContent,
 } from './types'
+import { isStaticShowcase, unavailableInShowcaseMessage } from './config'
+import { getShowcaseBook, showcaseBooks, showcaseContent, showcaseEvent } from './fallback-data'
 import { supabase } from './lib/supabase'
 
 const apiBase = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '')
@@ -16,6 +18,7 @@ async function request<T>(
 ): Promise<T> {
   let authorization: Record<string, string> = {}
   if (authenticated) {
+    if (!supabase) throw new Error(unavailableInShowcaseMessage)
     const { data } = await supabase.auth.getSession()
     if (!data.session?.access_token && authenticated === true) throw new Error('Please sign in first')
     if (data.session?.access_token) authorization = { Authorization: `Bearer ${data.session.access_token}` }
@@ -40,10 +43,12 @@ async function request<T>(
 }
 
 export function getSiteContent() {
+  if (isStaticShowcase) return Promise.resolve(showcaseContent)
   return request<SiteContent>('/content')
 }
 
 export function joinClub(name: string, email: string) {
+  if (isStaticShowcase) return Promise.reject(new Error(unavailableInShowcaseMessage))
   return request<{ member: { id: string; name: string; email: string } }>('/members', {
     method: 'POST',
     body: JSON.stringify({ name, email }),
@@ -75,6 +80,20 @@ export function cancelMeetingRsvp(meetingId: string) {
 }
 
 export function searchBooks(filters: { search?: string; genre?: string; sort?: string }) {
+  if (isStaticShowcase) {
+    const search = filters.search?.trim().toLowerCase() ?? ''
+    const genre = filters.genre?.trim().toLowerCase() ?? ''
+    const books = showcaseBooks
+      .filter((book) => !search || `${book.title} ${book.author}`.toLowerCase().includes(search))
+      .filter((book) => !genre || book.genre.toLowerCase() === genre)
+      .sort((a, b) => {
+        if (filters.sort === 'author') return a.author.localeCompare(b.author)
+        if (filters.sort === 'rating') return b.rating - a.rating
+        return a.title.localeCompare(b.title)
+      })
+    const genres = [...new Set(showcaseBooks.map((book) => book.genre))].sort()
+    return Promise.resolve({ books, genres })
+  }
   const params = new URLSearchParams()
   if (filters.search) params.set('search', filters.search)
   if (filters.genre) params.set('genre', filters.genre)
@@ -86,6 +105,12 @@ export function searchBooks(filters: { search?: string; genre?: string; sort?: s
 }
 
 export function getBookDetails(slug: string) {
+  if (isStaticShowcase) {
+    const details = getShowcaseBook(slug)
+    return details
+      ? Promise.resolve(details)
+      : Promise.reject(new Error('This book could not be found.'))
+  }
   return request<BookDetailsResponse>(`/books/${encodeURIComponent(slug)}`, undefined, 'optional')
 }
 
@@ -147,6 +172,11 @@ export function deleteReview(reviewId: string) {
 }
 
 export function getEvent(eventId: string) {
+  if (isStaticShowcase) {
+    return eventId === showcaseEvent.id
+      ? Promise.resolve({ event: showcaseEvent })
+      : Promise.reject(new Error('This gathering could not be found.'))
+  }
   return request<{ event: EventDetails }>(
     `/events/${encodeURIComponent(eventId)}`,
     undefined,

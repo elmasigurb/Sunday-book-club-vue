@@ -38,6 +38,8 @@ jobs:
 
       - name: Build website
         run: npm run build
+        env:
+          VITE_STATIC_MODE: 'true'
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v4

@@ -108,3 +108,11 @@ npm run start:server
 ```
 
 Set `CLIENT_ORIGINS` to the deployed frontend URL. If the frontend and API are deployed separately, set `VITE_API_URL` to the API base URL before building Vue, for example `https://api.example.com/api`.
+
+### GitHub Pages showcase
+
+GitHub Pages cannot run the Express API. The Pages workflow therefore builds with
+`VITE_STATIC_MODE=true`: public catalogue, book, review and event data come from a
+bundled read-only showcase, routes use hash history, and member mutations explain
+that they require the live API. A full deployment should leave static mode disabled,
+host the Node server and set the Supabase and API environment variables above.

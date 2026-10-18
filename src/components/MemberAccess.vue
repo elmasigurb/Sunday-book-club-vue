@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { getAccount } from '../api'
+import { isStaticShowcase } from '../config'
 import { sendMagicLink, signOut, useAuth } from '../composables/useAuth'
 
 const { session, initializing } = useAuth()
@@ -52,7 +53,14 @@ async function logOut() {
       </div>
 
       <div class="member-access-card">
-        <p v-if="initializing">Checking your session…</p>
+        <template v-if="isStaticShowcase">
+          <span class="member-access-flower" aria-hidden="true">✿</span>
+          <p class="eyebrow">Read-only showcase</p>
+          <h3>The member area needs a live server.</h3>
+          <p>You can explore every public page here. Sign-in, personal shelves, reviews and RSVPs are available when the Express API is deployed.</p>
+        </template>
+
+        <p v-else-if="initializing">Checking your session…</p>
 
         <template v-else-if="session">
           <span class="member-access-flower" aria-hidden="true">✿</span>
