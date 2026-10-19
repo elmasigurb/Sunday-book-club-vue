@@ -1,13 +1,16 @@
 # Sunday Book Club
 
-A Vue 3 frontend with a TypeScript/Express API and PostgreSQL hosted by Supabase.
+A Vue 3 reading platform backed directly by Supabase Auth and PostgreSQL. The
+existing TypeScript/Express API remains in the repository for compatibility and
+administrative/server-side work, but the browser does not depend on it.
 
 ## Architecture
 
 - `src/`: Vue/Vite frontend
-- `server/`: Node.js, Express, Zod validation and PostgreSQL API
+- `server/`: retained Node.js/Express API for compatibility and server-side operations
 - `supabase/migrations/`: ordered database migrations, constraints, indexes, seed content and RLS policies
-- The Vue app only talks to `/api`; the PostgreSQL connection string remains server-side.
+- The Vue app uses the Supabase JavaScript SDK with the public project URL and
+  publishable key. `DATABASE_URL` and elevated keys remain server-side only.
 
 ## Supabase setup
 
@@ -30,15 +33,23 @@ The migration runner records applied files in `public.schema_migrations`, so rer
 
 ## Authentication
 
-Authentication uses Supabase passwordless email links with PKCE. The browser receives a Supabase session, while protected Node endpoints independently verify its bearer token with Supabase Auth. Passwords are never collected or stored by this application.
+Authentication uses Supabase passwordless email links with PKCE. The browser
+persists and refreshes its Supabase session, and Postgres uses that identity for
+RLS. If the retained Node API is used separately, it still verifies bearer tokens
+with Supabase Auth. Passwords are never collected or stored by this application.
 
-In **Supabase → Authentication → URL Configuration**, set the production Site URL and add the local redirect URL:
+In **Supabase → Authentication → URL Configuration**, set the production Site
+URL to `https://elmasigurb.github.io/Sunday-book-club-vue/` and add this local
+redirect URL:
 
 ```text
 http://localhost:5173/Sunday-book-club-vue/
 ```
 
-Add the deployed site URL as an allowed redirect before production. Configure custom SMTP for production email delivery.
+Add both the production Site URL and the local URL to the redirect allow list.
+The default Magic Link template using `{{ .ConfirmationURL }}` is compatible
+with the client-side PKCE callback. Configure custom SMTP for production email
+delivery, then test a real email link on the deployed origin.
 
 For full database TLS verification, download the root certificate from Supabase **Database Settings** and set `DATABASE_SSL_CA_FILE` to its path. Without it, traffic is encrypted but the server certificate cannot be verified.
 
@@ -50,7 +61,7 @@ Install dependencies:
 npm install
 ```
 
-Run the frontend and API together:
+Run the frontend and retained API together:
 
 ```sh
 npm run dev
@@ -63,11 +74,18 @@ npm run dev:server
 npm run dev:web
 ```
 
-Vite proxies `/api` to `http://localhost:3000`. Site content comes from PostgreSQL; loading, empty and error states are shown when data is unavailable.
+The Vue application reads and writes through Supabase. Site content comes from
+PostgreSQL; loading, empty and error states are shown when data is unavailable.
 
-The Vue app uses history-mode routes for `/explore`, `/books/:slug`, `/profile`, and `/events/:id`. Production hosting must rewrite unknown frontend paths to `index.html` so direct links continue to work. Keep `/api/*` routed to the Node server rather than the SPA fallback.
+The Vue app uses hash routes such as `#/explore`, `#/books/:slug`, `#/profile`,
+and `#/events/:id`. This preserves direct links and refreshes on GitHub Pages
+without server rewrite rules. Browser features call Supabase directly; there is
+no frontend `/api` proxy.
 
-## API
+## Retained Express API
+
+The existing API is kept for compatibility and possible administrative or
+server-side use. The Vue application does not call these routes.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
@@ -104,15 +122,16 @@ npm run typecheck
 npm run build
 npm run build:server
 npm run security:rls
+npm run security:client
 npm run start:server
 ```
 
-Set `CLIENT_ORIGINS` to the deployed frontend URL. If the frontend and API are deployed separately, set `VITE_API_URL` to the API base URL before building Vue, for example `https://api.example.com/api`.
+`CLIENT_ORIGINS` applies only if the retained Express server is deployed for a
+separate use case. It is not required by the GitHub Pages application.
 
-### GitHub Pages showcase
+### GitHub Pages
 
-GitHub Pages cannot run the Express API. The Pages workflow therefore builds with
-`VITE_STATIC_MODE=true`: public catalogue, book, review and event data come from a
-bundled read-only showcase, routes use hash history, and member mutations explain
-that they require the live API. A full deployment should leave static mode disabled,
-host the Node server and set the Supabase and API environment variables above.
+GitHub Pages hosts the Vue bundle while Supabase provides authentication, data,
+RLS authorization and transactional RPCs. Add `VITE_SUPABASE_URL` and
+`VITE_SUPABASE_PUBLISHABLE_KEY` as GitHub Actions repository variables before
+deploying. Hash-based routes keep direct links and refreshes compatible with Pages.

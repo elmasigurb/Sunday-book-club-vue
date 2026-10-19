@@ -1,53 +1,54 @@
 # Security audit
 
-Audit date: 2026-10-18
+Audit date: 2026-10-19
 
 ## Scope
 
-Vue client, Express API, Supabase Auth integration, PostgreSQL access, database migration, dependencies, environment handling and local HTTP behavior.
+Vue client, direct Supabase browser access, Supabase Auth, PostgreSQL grants and
+RLS, security-definer RPCs, database migrations, GitHub Pages configuration,
+and the retained Express API.
 
 ## Implemented controls
 
 - Passwordless Supabase email authentication using PKCE and single-use links.
-- Server-side bearer-token verification with `supabase.auth.getUser`; client claims are never trusted directly.
-- Profile, shelf, review and RSVP endpoints reject missing, expired and forged tokens.
-- Profile, shelf, review and RSVP ownership is derived from the verified Supabase user ID, not request input.
-- Parameterized SQL and Zod validation are used for all user-controlled API input.
+- Persistent browser sessions with automatic token refresh and redirect-session detection.
+- The browser uses only the public Supabase URL and publishable key. `DATABASE_URL`, database passwords and service-role keys are not bundled.
+- Profile, shelf, review and RSVP ownership is derived from `auth.uid()`, not browser input.
 - Database constraints prevent duplicate usernames, shelf entries, member/book reviews and meeting RSVPs.
 - Row Level Security protects all nine user-facing tables. Public policies expose only published books, active clubs, scheduled/completed meetings and approved reviews.
-- Authenticated users can update only their own profile, shelf, reviews and registration state.
-- Direct RSVP writes are not granted to browser roles, preventing capacity bypasses through PostgREST. Only the authenticated API can change a registration; only a trusted organizer/backend path can confirm attendance.
-- CORS uses an explicit origin allowlist and rejects other browser origins.
-- Helmet security headers and a static-page Content Security Policy are enabled.
-- Global and signup-specific rate limits are enabled.
-- JSON bodies are limited to 32 KiB and errors return generic server messages.
+- Authenticated users can update only their own profile, shelf and reviews.
+- New and edited member reviews must have `approved = false`; owners can see their pending reviews, while anonymous users see only approved reviews.
+- Direct RSVP table writes are revoked from browser roles. Narrow authenticated RPCs register or cancel, and the registration RPC locks the meeting row while checking capacity.
+- Attendance confirmation columns remain unavailable to browser roles.
+- Security-definer functions use an empty `search_path` and schema-qualified relations.
+- The `book_catalog` view uses `security_invoker`, so underlying RLS remains effective.
+- The retained Express API still uses verified bearer tokens, parameterized SQL, Zod validation, an explicit CORS allowlist, Helmet, request limits and rate limits if separately deployed.
 - `.env` and `.env.local` are ignored and no environment files are tracked.
-- Full dependency audit reports zero known vulnerabilities.
 
 ## Verified behavior
 
-- Missing bearer token: `401 Authentication required`.
-- Forged bearer token: `401 session invalid or expired`.
-- Disallowed origin: `403 Origin is not allowed`.
-- API responses include CSP, HSTS, anti-sniffing, frame and rate-limit headers.
 - Frontend and server compile with strict TypeScript settings.
-- Production frontend and server builds complete successfully.
-- The automated RLS audit passes for all nine application tables and verifies that browser roles cannot update registration or attendance columns directly.
-- Public catalogue, book detail, club selection, event detail and homepage endpoints return live Supabase data.
-- Search validation returns `400`, missing books return `404`, and protected profile/shelf routes return `401` without a valid session.
-- Supabase reports the email provider and signup as enabled, with automatic email confirmation disabled.
+- The production frontend build completes successfully.
+- The database RLS audit passes for all nine application tables and verifies protected RPC execution, safe function search paths, the security-invoker catalogue view, and revoked RSVP/attendance writes.
+- A public-key Supabase smoke test passes for the exact nested catalogue, homepage, club-selection and event-detail queries used by Vue.
+- The same smoke test confirms anonymous users cannot read members, shelves or RSVPs and cannot execute member/registration RPCs.
+- Source inspection confirms there are no browser `fetch` calls, `/api` URLs, Express proxy settings or static-showcase branches.
+
+Passwordless delivery and authenticated write flows still require a real inbox and
+must be checked after the production Auth URLs are configured. They have not been
+claimed as live-site verified.
 
 ## Remaining deployment actions
 
-### Medium: verify the PostgreSQL server certificate
+### Retained Express server: verify the PostgreSQL certificate
 
 The active connection is encrypted, but the shared pooler's certificate chain is not trusted by the local Node trust store. Download the project root certificate from Supabase Database Settings and set `DATABASE_SSL_CA_FILE`. The backend will then use strict certificate verification.
 
-### Medium: replace the `postgres` connection with a least-privilege role
+### Retained Express server: use a least-privilege database role
 
 The current Supabase connection uses the administrative `postgres` database role. Before a public production launch, create a dedicated backend login role with only the permissions required by the API routes and use its pooler connection string.
 
-### Low: use a shared rate-limit store when horizontally scaled
+### Retained Express server: use a shared rate-limit store if scaled
 
 The current in-memory limiter is suitable for one Node process. Multiple production instances should use a shared store such as Redis.
 

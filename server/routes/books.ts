@@ -281,7 +281,7 @@ booksRouter.post('/:bookId/reviews', requireAuth, async (request, response) => {
     }>(`
       insert into public.reviews
         (member_id, book_id, display_name, initials, quote, rating, color, approved)
-      values ($1, $2, $3, $4, $5, $6, 'pink', true)
+      values ($1, $2, $3, $4, $5, $6, 'pink', false)
       returning id, quote, rating, created_at
     `, [member.id, bookId, name, initials || 'R', input.text, input.rating])
     await client.query('commit')

@@ -32,8 +32,52 @@ async function auditRls() {
       throw new Error('Attendance column privileges are not safely restricted')
     }
 
+    const functions = await client.query<{
+      function_name: string
+      security_definer: boolean
+      safe_search_path: boolean
+      anon_can_execute: boolean
+      authenticated_can_execute: boolean
+    }>(`
+      select
+        p.proname as function_name,
+        p.prosecdef as security_definer,
+        coalesce('search_path=""' = any(p.proconfig), false) as safe_search_path,
+        has_function_privilege('anon', p.oid, 'EXECUTE') as anon_can_execute,
+        has_function_privilege('authenticated', p.oid, 'EXECUTE') as authenticated_can_execute
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and p.proname = any(array[
+          'ensure_member_profile',
+          'register_for_meeting',
+          'cancel_meeting_registration'
+        ])
+    `)
+    if (
+      functions.rows.length !== 3
+      || functions.rows.some((fn) =>
+        !fn.security_definer
+        || !fn.safe_search_path
+        || fn.anon_can_execute
+        || !fn.authenticated_can_execute)
+    ) {
+      throw new Error('One or more browser RPC functions are not safely restricted')
+    }
+
+    const catalogue = await client.query<{ security_invoker: boolean }>(`
+      select coalesce('security_invoker=true' = any(c.reloptions), false) as security_invoker
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relname = 'book_catalog'
+    `)
+    if (!catalogue.rows[0]?.security_invoker) {
+      throw new Error('book_catalog must use security_invoker so underlying RLS applies')
+    }
+
     console.log(`RLS audit passed for ${policies.rows.length} application tables`)
-    console.log('Browser roles cannot bypass API registration or attendance checks')
+    console.log('Browser RPCs and catalogue view use the expected security boundaries')
+    console.log('Browser roles cannot bypass registration capacity or attendance checks')
   } finally {
     client.release()
     await pool.end()

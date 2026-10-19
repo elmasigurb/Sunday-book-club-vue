@@ -36,6 +36,7 @@ export interface CommunityReview {
   avatarUrl: string | null
   text: string
   rating: number
+  approved: boolean
   createdAt: string
   isOwn: boolean
 }
@@ -95,6 +96,7 @@ export interface ProfileReview {
   id: string
   text: string
   rating: number
+  approved: boolean
   createdAt: string
   book: Pick<Book, 'id' | 'slug' | 'title' | 'author' | 'coverClass'>
 }

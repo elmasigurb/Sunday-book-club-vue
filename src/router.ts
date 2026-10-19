@@ -1,11 +1,8 @@
-import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
-import { isStaticShowcase } from './config'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import HomePage from './pages/HomePage.vue'
 
 export const router = createRouter({
-  history: isStaticShowcase
-    ? createWebHashHistory(import.meta.env.BASE_URL)
-    : createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/', name: 'home', component: HomePage },
     { path: '/explore', name: 'explore', component: () => import('./pages/ExploreBooksPage.vue') },

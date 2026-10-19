@@ -4,7 +4,6 @@ import { useRoute } from 'vue-router'
 import { createReview, deleteReview, getBookDetails, setReadingStatus, updateReview } from '../api'
 import BookCover from '../components/BookCover.vue'
 import { useAuth } from '../composables/useAuth'
-import { isStaticShowcase } from '../config'
 import type { BookDetailsResponse, CommunityReview, ReadingStatus } from '../types'
 
 const route = useRoute()
@@ -119,8 +118,7 @@ watch(session, () => { void loadBook() })
             <p class="book-synopsis">{{ details.book.description || 'A full synopsis is coming soon.' }}</p>
             <blockquote v-if="details.book.pullQuote">“{{ details.book.pullQuote }}”</blockquote>
             <div v-if="!initializing" class="reading-control">
-              <span v-if="isStaticShowcase" class="genre-pill">Read-only showcase</span>
-              <label v-else-if="session">
+              <label v-if="session">
                 <span>Your reading status</span>
                 <select :value="details.viewer.readingStatus ?? ''" :disabled="statusPending" @change="changeStatus">
                   <option value="" disabled>Choose a status</option>
@@ -142,10 +140,7 @@ watch(session, () => { void loadBook() })
             <p class="eyebrow">Reader notes</p>
             <h2>Community <em>reviews.</em></h2>
           </div>
-          <div v-if="isStaticShowcase" class="review-prompt">
-            <p>Review writing is available when the live API is deployed.</p>
-          </div>
-          <form v-else-if="session && (!ownReview || editingReviewId)" class="review-editor" @submit.prevent="saveReview">
+          <form v-if="session && (!ownReview || editingReviewId)" class="review-editor" @submit.prevent="saveReview">
             <h3>{{ editingReviewId ? 'Edit your review' : 'Add your review' }}</h3>
             <fieldset>
               <legend>Your rating</legend>
@@ -174,6 +169,7 @@ watch(session, () => { void loadBook() })
               <div><strong>{{ review.reviewerName }}</strong><small>{{ new Date(review.createdAt).toLocaleDateString('en-GB', { dateStyle: 'medium' }) }}</small></div>
             </div>
             <span class="stars" :aria-label="`${review.rating} out of 5 stars`">{{ '★'.repeat(review.rating) }}</span>
+            <span v-if="review.isOwn && !review.approved" class="genre-pill">Pending approval</span>
             <p>“{{ review.text }}”</p>
             <div v-if="review.isOwn" class="card-actions">
               <button class="text-button" type="button" @click="beginEdit(review)">Edit</button>

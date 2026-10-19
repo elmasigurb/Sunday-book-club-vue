@@ -3,7 +3,6 @@ import { computed, ref } from 'vue'
 import type { Meeting } from '../types'
 import { rsvpToMeeting } from '../api'
 import { useAuth } from '../composables/useAuth'
-import { isStaticShowcase } from '../config'
 
 const props = defineProps<{ meeting: Meeting | null }>()
 const { session } = useAuth()
@@ -49,8 +48,7 @@ const time = computed(() => {
         <p class="eyebrow light">Next book club meeting</p>
         <h2>Let’s talk<br /><em>books.</em></h2>
         <p>Come as you are. Bring your thoughts, your dog-eared copy, and an appetite for cake.</p>
-        <button v-if="isStaticShowcase" class="button button-lime" type="button" disabled>RSVP available with live API</button>
-        <button v-else-if="session && meeting" class="button button-lime" type="button" :disabled="rsvpPending" @click="saveSpot">
+        <button v-if="session && meeting" class="button button-lime" type="button" :disabled="rsvpPending" @click="saveSpot">
           {{ rsvpPending ? 'Saving…' : 'Save my spot' }} <span v-if="!rsvpPending" aria-hidden="true">→</span>
         </button>
         <a v-else class="button button-lime" href="#member-access">Sign in to RSVP <span aria-hidden="true">→</span></a>

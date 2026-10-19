@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { joinClub } from '../api'
-import { isStaticShowcase } from '../config'
 
 const name = ref('')
 const email = ref('')
@@ -36,11 +35,7 @@ async function submitForm() {
       <h2>Your next favourite<br />book is <em>waiting.</em></h2>
       <p>Join Sunday Book Club for monthly reads, cozy meetups and very strong opinions about fictional people.</p>
 
-      <div v-if="isStaticShowcase" class="success-message" role="status">
-        <span aria-hidden="true">✿</span>
-        <div><strong>You’re viewing the project showcase.</strong><p>Club signup will open when the live API is deployed.</p></div>
-      </div>
-      <form v-else-if="!joined" class="join-form" @submit.prevent="submitForm">
+      <form v-if="!joined" class="join-form" @submit.prevent="submitForm">
         <label><span>Your name</span><input v-model="name" name="name" autocomplete="name" placeholder="e.g. Elín" required /></label>
         <label><span>Email address</span><input v-model="email" type="email" name="email" autocomplete="email" placeholder="you@email.com" required /></label>
         <button class="button button-burgundy" type="submit" :disabled="submitting">{{ submitting ? 'Joining…' : 'Join the Club' }} <span v-if="!submitting" aria-hidden="true">→</span></button>
@@ -48,9 +43,9 @@ async function submitForm() {
       </form>
       <div v-else class="success-message" role="status">
         <span aria-hidden="true">✿</span>
-        <div><strong>Welcome to the club, {{ name }}!</strong><p>Check your inbox—your first Sunday read is on its way.</p></div>
+        <div><strong>Welcome to the club, {{ name }}!</strong><p>Check your inbox for your secure member link.</p></div>
       </div>
-      <small v-if="!isStaticShowcase" class="fine-print">One lovely email a month. No spam, no plot spoilers.</small>
+      <small class="fine-print">One lovely email a month. No spam, no plot spoilers.</small>
     </div>
   </section>
 </template>

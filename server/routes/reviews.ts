@@ -18,7 +18,7 @@ reviewsRouter.patch('/:reviewId', requireAuth, async (request, response) => {
   const user = authenticatedUser(request)
   const result = await pool.query<{ id: string; quote: string; rating: number; updated_at: Date }>(`
     update public.reviews r
-    set quote = $3, rating = $4, approved = true
+    set quote = $3, rating = $4, approved = false
     from public.members m
     where r.id = $1 and r.member_id = m.id and m.auth_user_id = $2
     returning r.id, r.quote, r.rating, r.updated_at
