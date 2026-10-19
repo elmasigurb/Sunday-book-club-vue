@@ -1,142 +1,78 @@
 # Sunday Book Club
 
-A Vue 3 reading platform backed directly by Supabase Auth and PostgreSQL. The
-existing TypeScript/Express API remains in the repository for compatibility and
-administrative/server-side work, but the browser does not depend on it.
+Sunday Book Club is an interactive reading-community website built with Vue 3,
+TypeScript and Supabase. Members can discover books, keep a personal bookshelf,
+write reviews, join book clubs, register for meetings and view their attendance
+history.
 
-## Architecture
+- [Visit the live website](https://elmasigurb.github.io/Sunday-book-club-vue/)
+- [Read the interactive development and decision report](https://elmasigurb.github.io/Sunday-book-club-vue/development-report.html)
 
-- `src/`: Vue/Vite frontend
-- `server/`: retained Node.js/Express API for compatibility and server-side operations
-- `supabase/migrations/`: ordered database migrations, constraints, indexes, seed content and RLS policies
-- The Vue app uses the Supabase JavaScript SDK with the public project URL and
-  publishable key. `DATABASE_URL` and elevated keys remain server-side only.
+The development report explains the project's major design and engineering
+decisions, the Supabase migration, security model, technical challenges, and how
+adding a backend changed the website's UX and UI.
 
-## Supabase setup
+## Main features
 
-1. Create a project at [Supabase](https://supabase.com/dashboard).
-2. Open **Connect** in the project dashboard and copy a Postgres connection string. For a long-running Node server, use the session pooler or direct connection. Replace the password placeholder with the database password.
-3. Copy the environment template:
+- Passwordless member sign-in with persistent Supabase Auth sessions
+- Searchable and filterable book catalogue
+- Individual book and event pages
+- Personal reading statuses and bookshelf
+- Member reviews with a safe moderation workflow
+- Book clubs, meeting registration, cancellation and waitlisting
+- Member profiles, reading statistics and attendance history
+- Responsive layouts with loading, empty, success and error states
 
-   ```sh
-   cp .env.example .env
-   ```
+## Technology
 
-4. Set `DATABASE_URL` in `.env`. Never put it in a `VITE_` variable or commit `.env`.
-5. Apply the schema and seed data:
+- **Frontend:** Vue 3, TypeScript, Vite and Vue Router
+- **Authentication:** Supabase Auth with passwordless email links and PKCE
+- **Database:** Supabase PostgreSQL
+- **Security:** Row Level Security policies and narrowly scoped database functions
+- **Hosting:** GitHub Pages, deployed through GitHub Actions
 
-   ```sh
-   npm run db:migrate
-   ```
+The browser communicates directly with Supabase using the public project URL
+and publishable key. PostgreSQL Row Level Security controls which records each
+member can read or change. Database passwords and service-role keys are never
+included in the frontend.
 
-The migration runner records applied files in `public.schema_migrations`, so rerunning it applies only new migrations. The reading-platform migration is additive: it preserves existing content and registrations, adds profiles, bookshelves, clubs/selections and confirmed attendance, and installs ownership-based RLS policies.
+The original Express API remains in [`server/`](server/) for compatibility and
+possible administrative or server-side work, but the deployed website does not
+depend on it.
 
-## Authentication
+## Project structure
 
-Authentication uses Supabase passwordless email links with PKCE. The browser
-persists and refreshes its Supabase session, and Postgres uses that identity for
-RLS. If the retained Node API is used separately, it still verifies bearer tokens
-with Supabase Auth. Passwords are never collected or stored by this application.
+| Path | Purpose |
+| --- | --- |
+| [`src/`](src/) | Vue application, pages, components and Supabase data access |
+| [`supabase/migrations/`](supabase/migrations/) | Additive database migrations, functions and RLS policies |
+| [`server/`](server/) | Retained Express API and database/security scripts |
+| [`development-report.html`](development-report.html) | Interactive development and decision report |
+| [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) | GitHub Pages build and deployment workflow |
 
-In **Supabase → Authentication → URL Configuration**, set the production Site
-URL to `https://elmasigurb.github.io/Sunday-book-club-vue/` and add this local
-redirect URL:
+## Run locally
 
-```text
-http://localhost:5173/Sunday-book-club-vue/
-```
-
-Add both the production Site URL and the local URL to the redirect allow list.
-The default Magic Link template using `{{ .ConfirmationURL }}` is compatible
-with the client-side PKCE callback. Configure custom SMTP for production email
-delivery, then test a real email link on the deployed origin.
-
-For full database TLS verification, download the root certificate from Supabase **Database Settings** and set `DATABASE_SSL_CA_FILE` to its path. Without it, traffic is encrypted but the server certificate cannot be verified.
-
-## Development
-
-Install dependencies:
+Install the dependencies and start the Vue development server:
 
 ```sh
 npm install
-```
-
-Run the frontend and retained API together:
-
-```sh
-npm run dev
-```
-
-They can also be run separately for debugging:
-
-```sh
-npm run dev:server
 npm run dev:web
 ```
 
-The Vue application reads and writes through Supabase. Site content comes from
-PostgreSQL; loading, empty and error states are shown when data is unavailable.
+Create a local `.env` file from [`.env.example`](.env.example) and provide the
+required Supabase configuration. Never commit `.env`, a database password,
+`DATABASE_URL`, or a service-role key.
 
-The Vue app uses hash routes such as `#/explore`, `#/books/:slug`, `#/profile`,
-and `#/events/:id`. This preserves direct links and refreshes on GitHub Pages
-without server rewrite rules. Browser features call Supabase directly; there is
-no frontend `/api` proxy.
-
-## Retained Express API
-
-The existing API is kept for compatibility and possible administrative or
-server-side use. The Vue application does not call these routes.
-
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `GET` | `/api/health` | Database health check |
-| `GET` | `/api/content` | Published books, featured book, next meeting and approved reviews |
-| `POST` | `/api/members` | Create or reactivate a club membership |
-| `GET` | `/api/account` | Create/read the authenticated member profile |
-| `POST` | `/api/meetings/:id/rsvp` | Reserve a seat; authentication required |
-| `DELETE` | `/api/meetings/:id/rsvp` | Cancel the signed-in member's reservation |
-| `GET` | `/api/books` | Search, filter and sort the published catalogue |
-| `GET` | `/api/books/:slug` | Book details, community reviews and club selections |
-| `PUT` | `/api/books/:id/reading-status` | Add or update the signed-in member's shelf status |
-| `DELETE` | `/api/books/:id/reading-status` | Remove a book from the signed-in member's shelf |
-| `POST` | `/api/books/:id/reviews` | Write one review for a book |
-| `PATCH` | `/api/reviews/:id` | Edit the signed-in member's review |
-| `DELETE` | `/api/reviews/:id` | Delete the signed-in member's review |
-| `GET` | `/api/profile` | Profile, statistics, events, bookshelf and reviews |
-| `PATCH` | `/api/profile` | Update the signed-in member's public profile fields |
-| `GET` | `/api/events/:id` | Event, featured book, club and registration details |
-
-Example membership request:
-
-```json
-{
-  "name": "Elín",
-  "email": "elin@example.com"
-}
-```
-
-## Production
+Useful verification commands:
 
 ```sh
 npm run typecheck
 npm run build
-npm run build:server
 npm run security:rls
 npm run security:client
 npm run security:member-flows
-npm run start:server
 ```
 
-`security:member-flows` impersonates an existing authenticated user inside a
-database transaction, verifies profile, shelf, review and RSVP operations, and
-always rolls the transaction back.
-
-`CLIENT_ORIGINS` applies only if the retained Express server is deployed for a
-separate use case. It is not required by the GitHub Pages application.
-
-### GitHub Pages
-
-GitHub Pages hosts the Vue bundle while Supabase provides authentication, data,
-RLS authorization and transactional RPCs. Add `VITE_SUPABASE_URL` and
-`VITE_SUPABASE_PUBLISHABLE_KEY` as GitHub Actions repository variables before
-deploying. Hash-based routes keep direct links and refreshes compatible with Pages.
+The production build contains both the main application and the standalone
+development report. Vite's GitHub Pages base path is
+`/Sunday-book-club-vue/`.
