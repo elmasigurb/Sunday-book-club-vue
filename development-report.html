@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Interactive decision report for the Sunday Book Club Vue and Supabase platform." />
-  <title>Sunday Book Club — Product &amp; Technical Decision Report</title>
+  <meta name="description" content="Interactive development report for the Sunday Book Club Vue and Supabase platform." />
+  <title>Sunday Book Club — Interactive Development Report</title>
   <style>
     :root {
       --ink: #2c1722;
@@ -172,7 +172,7 @@
   <a class="skip-link" href="#main">Skip to report</a>
   <header class="topbar">
     <div class="shell topbar-inner">
-      <a class="brand" href="#top"><span class="brand-mark">S</span> Sunday Book Club / Decision Report</a>
+      <a class="brand" href="#top"><span class="brand-mark">S</span> Sunday Book Club / Development Report</a>
       <nav aria-label="Report navigation">
         <a href="#architecture">Architecture</a>
         <a href="#decisions">Decisions</a>
@@ -185,14 +185,16 @@
   <main id="main">
     <section class="hero" id="top">
       <div class="shell">
-        <p class="eyebrow">Product &amp; technical decision record · Updated 19 October 2026</p>
+        <p class="eyebrow">Interactive development report · Updated 19 October 2026</p>
         <h1>From a lovely page to a <em>living club.</em></h1>
         <p class="lede">An interactive account of the choices that turned Sunday Book Club from a static Vue homepage into a secure, data-backed reading platform—with the reasoning, trade-offs, implementation evidence, and visible UX consequences in one place.</p>
         <div class="hero-meta" aria-label="Report scope">
-          <span class="pill"><span class="dot"></span> 15 decisions recorded</span>
+          <span class="pill"><span class="dot"></span> 16 decisions recorded</span>
           <span class="pill">Vue 3 + TypeScript</span>
           <span class="pill">Vue + Supabase SDK</span>
           <span class="pill">Supabase Auth + RLS</span>
+          <a class="pill" href="https://elmasigurb.github.io/Sunday-book-club-vue/">Open live club ↗</a>
+          <a class="pill" href="https://github.com/elmasigurb/Sunday-book-club-vue">View repository ↗</a>
         </div>
       </div>
     </section>
@@ -205,9 +207,9 @@
         </div>
         <div class="summary-grid">
           <article class="stat"><strong>5</strong><span>Vue routes now form the member journey</span></article>
-          <article class="stat"><strong>14</strong><span>documented API operations support the experience</span></article>
+          <article class="stat"><strong>8</strong><span>connected member and discovery journeys</span></article>
           <article class="stat"><strong>9</strong><span>user-facing tables protected by Row Level Security</span></article>
-          <article class="stat"><strong>0</strong><span>known dependency vulnerabilities in the recorded audit</span></article>
+          <article class="stat"><strong>3</strong><span>narrow authenticated database RPCs</span></article>
         </div>
       </div>
     </section>
@@ -245,7 +247,7 @@
             <button class="filter" type="button" data-filter="security">Security</button>
           </div>
         </div>
-        <p class="decision-count" id="decision-count" aria-live="polite">Showing all 15 decisions</p>
+        <p class="decision-count" id="decision-count" aria-live="polite">Showing all 16 decisions</p>
         <div class="decision-list" id="decision-list">
 
           <details class="decision" data-categories="backend product" data-search="postgresql supabase source truth database persistent live content books meetings reviews">
@@ -322,6 +324,11 @@
             <summary><span class="decision-num">15</span><div><h3 class="decision-title">Make GitHub Pages a complete deployment target</h3><div class="decision-meta"><span class="tag">Frontend</span><span class="tag">Backend</span></div></div><span class="chevron">＋</span></summary>
             <div class="decision-body"><div><h4>Why</h4><p>GitHub Pages cannot run Express or rewrite application routes. The deployed site needs a static-host-compatible path strategy and a browser-accessible data service.</p></div><div><h4>Consequence</h4><p>Hash routing survives refreshes, Actions injects only the public Supabase URL and publishable key, and the build fails early when either variable is absent.</p></div><div><h4>Evidence</h4><div class="evidence-links"><a href=".github/workflows/deploy.yml">Pages workflow ↗</a><a href="src/router.ts">Hash routing ↗</a><a href="README.md#github-pages">Deployment notes ↗</a></div></div></div>
           </details>
+
+          <details class="decision" data-categories="backend security" data-search="debugging postgresql plpgsql ambiguous auth user id additive hotfix regression transaction rollback">
+            <summary><span class="decision-num">16</span><div><h3 class="decision-title">Fix production defects with additive, rollback-tested migrations</h3><div class="decision-meta"><span class="tag">Backend</span><span class="tag">Security</span></div></div><span class="chevron">＋</span></summary>
+            <div class="decision-body"><div><h4>Challenge</h4><p>Event registration exposed a PostgreSQL ambiguity: a PL/pgSQL variable and the <code>members.auth_user_id</code> column shared the same name inside <code>ensure_member_profile()</code>.</p></div><div><h4>Resolution</h4><p>A new migration renamed the variable, retained the security-definer boundary and grants, and replaced only the affected functions. A transaction-only audit exercised profiles, shelves, reviews, registration and cancellation, then rolled every test write back.</p></div><div><h4>Evidence</h4><div class="evidence-links"><a href="supabase/migrations/20261019000000_fix_member_profile_auth_user_ambiguity.sql">Additive fix ↗</a><a href="server/scripts/audit-member-flows.ts">Regression audit ↗</a><a href="SECURITY_AUDIT.md#verified-behavior">Verified behavior ↗</a></div></div></div>
+          </details>
         </div>
         <div class="empty-results" id="empty-results" hidden>No decisions match that search and filter. Try a broader term.</div>
       </div>
@@ -362,6 +369,8 @@
           <details class="explainer"><summary>Why can’t the browser write RSVPs directly?</summary><p>Seat allocation needs one trusted capacity check. If every browser could update RSVP rows directly, a modified request might bypass the waitlist or change organizer-only attendance fields.</p></details>
           <details class="explainer"><summary>What does “additive migration” mean?</summary><p>Instead of rebuilding the database, the migration adds columns and tables, fills required values for existing rows, then adds stricter rules. That keeps earlier content and registrations intact.</p></details>
           <details class="explainer"><summary>Why use hash routing on GitHub Pages?</summary><p>GitHub Pages looks for physical files when the path before <code>#</code> changes. Keeping Vue routes after the hash means refreshes always request the real project <code>index.html</code>, then Vue renders the requested screen.</p></details>
+          <details class="explainer"><summary>What caused the ambiguous-column production error?</summary><p>PL/pgSQL treats unqualified names as possible variables or columns. The function used <code>auth_user_id</code> for both, so PostgreSQL refused to guess. Renaming the variable to <code>request_auth_user_id</code> made every comparison explicit without changing data or weakening RLS.</p></details>
+          <details class="explainer"><summary>Why are public Supabase keys safe in the frontend?</summary><p>The project URL and publishable key identify the Supabase project; they are not database passwords. Authorization still comes from grants, authenticated JWTs and RLS. Database passwords and service-role keys remain server-only and never enter the built site.</p></details>
         </div>
       </div>
     </section>
@@ -381,14 +390,19 @@
           <a class="doc-card" href="src/router.ts"><div><small>Experience</small><h3>Route Map</h3><p>The public and member-facing destinations that make up the product journey.</p></div><span>Open source →</span></a>
           <a class="doc-card" href="src/api.ts"><div><small>Data access</small><h3>Supabase Query Layer</h3><p>Typed direct queries, protected RPC calls and consistent response/error handling.</p></div><span>Open source →</span></a>
           <a class="doc-card" href="supabase/migrations/20261018030000_direct_supabase_client.sql"><div><small>Database</small><h3>Direct-client migration</h3><p>Profile bootstrap, secure catalogue view, review moderation and transactional RSVP functions.</p></div><span>Open source →</span></a>
+          <a class="doc-card" href="supabase/migrations/20261019000000_fix_member_profile_auth_user_ambiguity.sql"><div><small>Debugging</small><h3>Production RPC Fix</h3><p>Additive function replacements that remove ambiguous PL/pgSQL names without changing data or RLS.</p></div><span>Open source →</span></a>
           <a class="doc-card" href="package.json"><div><small>Operations</small><h3>Project Scripts</h3><p>Commands for local development, builds, type checks, migrations and RLS auditing.</p></div><span>Open source →</span></a>
+          <a class="doc-card" href="vite.config.ts"><div><small>Build</small><h3>Vite Configuration</h3><p>The GitHub Pages base path and separate production entry for this report.</p></div><span>Open source →</span></a>
+          <a class="doc-card" href="https://supabase.com/docs/guides/database/postgres/row-level-security"><div><small>Documentation</small><h3>Supabase RLS Guide</h3><p>Official explanation of database policies and authenticated row ownership.</p></div><span>Read documentation →</span></a>
+          <a class="doc-card" href="https://supabase.com/docs/guides/auth/auth-email-passwordless"><div><small>Documentation</small><h3>Passwordless Auth</h3><p>Official guidance for magic links, redirects and passwordless sessions.</p></div><span>Read documentation →</span></a>
+          <a class="doc-card" href="https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages"><div><small>Documentation</small><h3>GitHub Pages Actions</h3><p>Official workflow guidance for building and deploying a Pages artifact.</p></div><span>Read documentation →</span></a>
         </div>
         <p class="note"><strong>Evidence note:</strong> The repository does not contain a separate meeting transcript or formal ADR folder. This report reconstructs the decision record from the current implementation, its diff from the original static version, the README, migration comments and the dated security audit. “Why” statements are therefore reasoned explanations of the implemented choices, not quotations from an absent conversation log.</p>
       </div>
     </section>
   </main>
 
-  <footer><div class="shell"><span>Sunday Book Club · Product &amp; Technical Decision Report</span><a class="back-top" href="#top">Back to top ↑</a></div></footer>
+  <footer><div class="shell"><span>Sunday Book Club · Interactive Development Report</span><a class="back-top" href="#top">Back to top ↑</a></div></footer>
 
   <script>
     const searchInput = document.querySelector('#decision-search');
@@ -397,6 +411,14 @@
     const count = document.querySelector('#decision-count');
     const empty = document.querySelector('#empty-results');
     let activeFilter = 'all';
+
+    const repositoryFileBase = 'https://github.com/elmasigurb/Sunday-book-club-vue/blob/main/';
+    document.querySelectorAll('a[href]').forEach((link) => {
+      const href = link.getAttribute('href');
+      if (href && !href.startsWith('#') && !href.startsWith('https://') && !href.startsWith('http://')) {
+        link.href = `${repositoryFileBase}${href}`;
+      }
+    });
 
     function updateDecisions() {
       const query = searchInput.value.trim().toLowerCase();
@@ -415,6 +437,7 @@
     }
 
     searchInput.addEventListener('input', updateDecisions);
+    filters.forEach((filter) => filter.setAttribute('aria-pressed', String(filter.classList.contains('active'))));
     filters.forEach((filter) => filter.addEventListener('click', () => {
       activeFilter = filter.dataset.filter;
       filters.forEach((item) => {
