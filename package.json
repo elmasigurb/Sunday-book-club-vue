@@ -13,6 +13,7 @@
     "db:migrate": "tsx server/scripts/migrate.ts",
     "security:rls": "tsx server/scripts/audit-rls.ts",
     "security:client": "tsx server/scripts/audit-supabase-client.ts",
+    "security:member-flows": "tsx server/scripts/audit-member-flows.ts",
     "start:server": "node dist-server/index.js",
     "preview": "vite preview"
   },

@@ -32,6 +32,9 @@ and the retained Express API.
 - The database RLS audit passes for all nine application tables and verifies protected RPC execution, safe function search paths, the security-invoker catalogue view, and revoked RSVP/attendance writes.
 - A public-key Supabase smoke test passes for the exact nested catalogue, homepage, club-selection and event-detail queries used by Vue.
 - The same smoke test confirms anonymous users cannot read members, shelves or RSVPs and cannot execute member/registration RPCs.
+- A rollback-only authenticated audit verifies profile resolution and updates,
+  bookshelf writes, pending-review writes, event registration and event
+  cancellation without retaining any test changes.
 - Source inspection confirms there are no browser `fetch` calls, `/api` URLs, Express proxy settings or static-showcase branches.
 
 Passwordless delivery and authenticated write flows still require a real inbox and

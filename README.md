@@ -123,8 +123,13 @@ npm run build
 npm run build:server
 npm run security:rls
 npm run security:client
+npm run security:member-flows
 npm run start:server
 ```
+
+`security:member-flows` impersonates an existing authenticated user inside a
+database transaction, verifies profile, shelf, review and RSVP operations, and
+always rolls the transaction back.
 
 `CLIENT_ORIGINS` applies only if the retained Express server is deployed for a
 separate use case. It is not required by the GitHub Pages application.
